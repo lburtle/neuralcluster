@@ -3,9 +3,14 @@
 ## Two Models:
 #### - Attention Based Neural Cluster
 #### - Energy Based Neural Cluster
-## Task
+## Tasks
+### 1,
 #### Trained on XOR and AND truth tables (0, 1, 1, 0), (0, 0, 0, 1)
 #### Given initial inputs [[-1.,-1.], [-1.,1.], [1.,-1.], [1.,1.]] in the form of a tensor
+### 2.
+#### MNIST Dataset: 28 x 28 pixel grid for numbers -> 784 input neurons
+#### 10 output neurons for classification
+#### Some intermediary neurons added for padding to learn patterns
 
 ## Training Method
 #### Since there is no clear input and output layer, this model instead relies on neuron injection
