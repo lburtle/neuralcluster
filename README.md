@@ -1,5 +1,7 @@
 # neuralcluster
  -------------------------------
+### Written to utilize GPU or CPU
+ 
 ## Two Models:
 #### - Attention Based Neural Cluster
 #### - Energy Based Neural Cluster
@@ -12,16 +14,19 @@
 #### 10 output neurons for classification
 #### Some intermediary neurons added for padding to learn patterns
 
+
 ## Training Method
 #### Since there is no clear input and output layer, this model instead relies on neuron injection
 #### Looks like: input_neurons = [3, 7] output_neuron = [5]
 #### This trains a specific pathway through the network to optimize the task
 #### Theoretically allows for different tasks to be encoded into different clusters
 
+
 ## Emergent Behavior
 #### The goal is to observe distinct clusters forming within the network
 #### These clusters are formed based on how strong the connections are between them
 #### Visualized using a clustering algorithm which determines how many edges/connections to consider in the projection and assigning each neuron to a cluster
+
 
 ## Network Types Explained
 ### Attention Based:
