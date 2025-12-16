@@ -35,7 +35,7 @@
 ![MNIST network](images/3D_mnist.png)
 
 ### MNIST + RL
-
+![mnist + rl](images/3D_MNIST_RL.png)
 
 ## Network Types Explained
 ### Attention Based:
