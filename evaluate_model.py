@@ -76,7 +76,7 @@ def evaluate_mnist_capabilities():
         ax.set_title(f"Pred: {preds[i].item()} | True: {target[i].item()}")
         ax.axis('off')
     
-    save_path = "mnist_evaluation_results.png"
+    save_path = "images/mnist_evaluation_results.png"
     plt.savefig(save_path)
     print(f"Saved visualization to {save_path}")
 

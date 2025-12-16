@@ -25,6 +25,9 @@ print("Training model to generate graph...")
 model = train_mnist()
 # If you want to save it: torch.save(model.state_dict(), "mnist_model.pt")
 
+## Should def switch to loading from file in the future, retraining might be a problem
+## Also should train model simultaneously for both tasks
+
 model.eval()
 
 # Define input range for graph analysis

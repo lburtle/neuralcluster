@@ -217,7 +217,7 @@ def train_rl(pretrained_net=None):
 
     
     # Train for a short duration to verify it runs and learns something
-    model.learn(total_timesteps=20000)
+    model.learn(total_timesteps=5000)
     
     print("RL Training Finished.")
     
