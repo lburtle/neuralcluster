@@ -8,3 +8,9 @@ nbformat
 networkx
 torchvision
 seaborn
+kneed
+stable-baselines3
+imageio
+gym
+"gymnasium[mujoco]"
+argparse
