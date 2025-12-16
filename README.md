@@ -27,6 +27,15 @@
 #### These clusters are formed based on how strong the connections are between them
 #### Visualized using a clustering algorithm which determines how many edges/connections to consider in the projection and assigning each neuron to a cluster
 
+### 4 Task network
+![4 task network](images/4task30.png)
+![4 task in 3D](images/3D-optimizedk.png)
+
+### MNIST network
+![MNIST network](images/3D_mnist.png)
+
+### MNIST + RL
+
 
 ## Network Types Explained
 ### Attention Based:
@@ -34,7 +43,7 @@
 #### Connections are updated based on howw strongly each neuron attends to each other for the given task
 #### Connections are not localized, but instead global, allowing connections over any distance
 
-### Energy Based
+### Energy Based (Cooler)
 #### Hopfield Energy Network
 #### Have to review
 #### Desired structure where neurons can build connections across entire network, but more local ones are preferred
