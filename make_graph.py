@@ -11,18 +11,29 @@ import os
 # Ensure we can import from the models directory
 sys.path.append(os.getcwd())
 try:
-    from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device
+    from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device, NUM_NEURONS, DEFAULT_LOG_DIR
 except ImportError:
     # If running from PIML/ directly, models is a package
-    from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device
+    from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device, NUM_NEURONS, DEFAULT_LOG_DIR
 
 # Configuration
 n_input = 784 # MNIST input size
 
 # Load or Train Model
 # Since we don't have a saved file, we'll train one quickly or use the function
-print("Training model to generate graph...")
-model = train_mnist()
+# Load Model
+model_path = os.path.join(DEFAULT_LOG_DIR, "hopfield_rl_model.pt")
+model = HopfieldEnergyNet(num_neurons=NUM_NEURONS).to(device)
+
+if os.path.exists(model_path):
+    print(f"Loading model from {model_path}...")
+    model.load_state_dict(torch.load(model_path, map_location=device))
+else:
+    print("Model file not found. Please run 'python models/integrated_hopfield_rl.py --mode rl' first to generate weights.")
+    # Fallback to fresh initialization (random weights) if we just want to see the graph structure, 
+    # but ideally we want trained weights.
+    print("Using initialized random weights.")
+
 # If you want to save it: torch.save(model.state_dict(), "mnist_model.pt")
 
 ## Should def switch to loading from file in the future, retraining might be a problem
@@ -31,10 +42,10 @@ model = train_mnist()
 model.eval()
 
 # Define input range for graph analysis
-# The user's previous code used range(794 + n_input), but for MNIST we usually care about the 784 inputs 
-# and how they connect to the whole network components.
-# Let's assume input_neurons covers the MNIST grid.
-input_neurons = list(range(n_input)) 
+# Define input range for graph analysis
+# MNIST (0-783) + Ant (794-820, assuming 27 inputs)
+ant_obs_size = 27
+input_neurons = list(range(n_input)) + list(range(794, 794 + ant_obs_size)) 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Setup Data Loader for batch processing
