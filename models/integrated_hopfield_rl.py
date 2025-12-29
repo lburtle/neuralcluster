@@ -389,75 +389,104 @@ class SchedulerCallback(BaseCallback):
 
 # --- RL Training Function ---
 def train_rl(pretrained_net=None):
+    # Ensure log dir exists
     os.makedirs(DEFAULT_LOG_DIR, exist_ok=True)
     
     print("--- Starting RL (Integrated Visual Ant) Training ---")
     
+    # 1. Load MNIST for the Wrapper
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     mnist_train = datasets.MNIST('./data', train=True, download=True, transform=transform)
     mnist_loader = torch.utils.data.DataLoader(mnist_train, batch_size=1, shuffle=True)
 
+    # 2. Create and Wrap Environment
     raw_env = gym.make("Ant-v4", render_mode="rgb_array", terminate_when_unhealthy=False)
+    # Apply our new Integration Wrapper with the "Death Penalty"
     visual_env = VisualAntWrapper(raw_env, mnist_loader)
     
+    # Standard SB3 vectorization and normalization
     env = DummyVecEnv([lambda: visual_env])
     env = VecNormalize(env, norm_obs=True, norm_reward=True)
     
+    # Initialize PPO with Custom Policy
     policy_kwargs = dict(
         features_extractor_class=HopfieldFeatureExtractor,
-        features_extractor_kwargs=dict(num_neurons=NUM_NEURONS, steps=5), 
+        features_extractor_kwargs=dict(num_neurons=NUM_NEURONS, steps=5), # Fewer steps for speed in RL
         net_arch=[dict(pi=[64, 64], vf=[64, 64])] 
     )
     
     log_path = os.path.join(DEFAULT_LOG_DIR, "ppo_ant_hopfield")
     model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs, verbose=1, device=device, tensorboard_log=log_path)
     
+    # 3. Load Weights and Apply BIOLOGICAL GATING
     if pretrained_net is not None:
         print("Loading pretrained weights from provided HopfieldEnergyNet...")
         model.policy.features_extractor.net.load_state_dict(pretrained_net.state_dict())
         
-        print("Calculating EWC importance weights (Shielding Vision)...")
-        # Use a larger subset for better Fisher calculation
-        dset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-        subset = torch.utils.data.Subset(dset, indices=range(2000)) # Increased to 2000
-        loader = torch.utils.data.DataLoader(subset, batch_size=64)
+        print("Engaging Dopamine Gating (Biological Compartmentalization)...")
         
-        fisher_matrix = compute_fisher(model.policy.features_extractor.net, loader)
-        old_params = {n: p.clone().detach() for n, p in model.policy.features_extractor.net.named_parameters() if p.requires_grad}
+        # --- THE DOPAMINE GATING HOOK ---
+        # This hook intercepts the gradient signal from the RL algorithm.
+        # It ensures that "Blame" for falling over stops at the bridge 
+        # and does not scramble the Visual Cortex.
         
-    class EWCOptimizer(torch.optim.Adam):
-        def __init__(self, params, lr, fisher, old_p):
-            super().__init__(params, lr=lr)
-            self.fisher = fisher
-            self.old_p = old_p
+        def dopamine_gating_hook(grad):
+            # Create a clone to modify
+            grad_clone = grad.clone()
+            
+            # 1. FREEZE INTERNAL VISION (V1, V2, Ventral)
+            # We zero out gradients for the square block of Vision-to-Vision connections.
+            # Indices: 0 to VENTRAL_END (0-2300)
+            grad_clone[:VENTRAL_END, :VENTRAL_END] = 0
+            
+            # 2. FREEZE FEEDBACK (Dorsal -> Vision)
+            # We prevent the Motor block from "shouting back" and rewriting the Vision.
+            # Rows: 0 to VENTRAL_END (Vision Neurons)
+            # Cols: VENTRAL_END to DORSAL_END (Motor Neurons)
+            grad_clone[:VENTRAL_END, VENTRAL_END:] = 0
+            
+            # 3. ALLOW BRIDGE UPDATES (Vision -> Dorsal)
+            # We explicitly ALLOW gradients in the block where the Motor cortex 
+            # "listens" to the Vision cortex. 
+            # This is biologically accurate: The synapse exists on the Motor neuron,
+            # so the Motor neuron is allowed to change the weight of that synapse.
+            # Rows: VENTRAL_END to DORSAL_END (Motor Neurons receiving input)
+            # Cols: 0 to VENTRAL_END (Vision Neurons sending output)
+            # (No action needed, as we simply didn't zero this block)
+            
+            return grad_clone
 
-        def step(self, closure=None):
-            if pretrained_net is not None:
-                net = model.policy.features_extractor.net
-                for n, p in net.named_parameters():
-                    if n in self.fisher and p.grad is not None:
-                        ewc_grad = 2 * EWC_LAMBDA * self.fisher[n] * (p.data - self.old_p[n])
-                        p.grad.data += ewc_grad
-            super().step(closure)
-    
-    if pretrained_net is not None:
-        params = list(model.policy.parameters())
-        model.policy.optimizer = EWCOptimizer(params, lr=3e-4, fisher=fisher_matrix, old_p=old_params)
-        print("Replaced PPO optimizer with custom EWC+Adam optimizer.")
+        # Register the hook on the main weight matrix
+        model.policy.features_extractor.net.weights.register_hook(dopamine_gating_hook)
+        
+        # Also freeze the Biases for the Vision Block
+        def bias_gating_hook(grad):
+            grad_clone = grad.clone()
+            grad_clone[:VENTRAL_END] = 0 # Protect Vision Biases
+            return grad_clone
+            
+        model.policy.features_extractor.net.bias.register_hook(bias_gating_hook)
+        
+        print("   -> Vision Cortex (0-2300) Protected.")
+        print("   -> Synaptic Bridge (Vision->Motor) is PLASTIC (Learnable).")
 
+    # 4. Create the Monitors and Callbacks
     monitor = BridgeMonitor(model.policy.features_extractor.net, device, 
                             v_range=(V2_END, VENTRAL_END), 
                             d_range=(VENTRAL_END, DORSAL_END))
     
     diag_callback = HopfieldDiagnosticCallback(monitor, check_freq=10000)
+    
+    # Scheduler: Cools down the Motor learning over time
     sched_callback = SchedulerCallback(model.policy.optimizer, gamma=0.97, step_size=10000)
 
     from stable_baselines3.common.callbacks import CallbackList
     callback = CallbackList([diag_callback, sched_callback])
 
-    # SURVIVAL SETTING: Run for 500k steps to ensure adaptation
-    print("Training for 500,000 steps...")
-    model.learn(total_timesteps=500000, callback=callback)
+    # 5. Train for Survival
+    # We use 500k steps to ensure the 'Aha!' moment happens
+    print("Training for 200,000 steps with Gating Active...")
+    model.learn(total_timesteps=200000, callback=callback)
     
     print("RL Training Finished.")
     
@@ -465,10 +494,12 @@ def train_rl(pretrained_net=None):
     import cv2 
 
     print("Generating Visualized Replay...")
+    # Create a fresh test environment
     env_test = gym.make("Ant-v4", render_mode="rgb_array")
     env_test = VisualAntWrapper(env_test, mnist_loader)
     env_test = DummyVecEnv([lambda: env_test])
     
+    # Sync Normalization stats
     env_test = VecNormalize(env_test, norm_obs=True, norm_reward=False, training=False)
     env_test.obs_rms = env.obs_rms 
 
@@ -479,25 +510,31 @@ def train_rl(pretrained_net=None):
         action, _ = model.predict(obs, deterministic=True)
         obs, rewards, dones, infos = env_test.step(action)
         
+        # 1. Grab the frame
         raw_frame = env_test.render()
         
+        # 2. Check if the frame is valid/black
         if raw_frame is None or np.max(raw_frame) == 0:
             if i == 0: print("Warning: First frame is black. This is common in MuJoCo initialization.")
             continue
 
+        # 3. Create a writeable, contiguous copy for OpenCV
         frame = np.ascontiguousarray(raw_frame.copy())
         
+        # 4. DRAW THE DIGIT OVERLAY
         current_label = env_test.envs[0].current_label
         label_text = f"Digit: {current_label} ({'GO' if current_label % 2 == 0 else 'STOP'})"
         color = (0, 255, 0) if current_label % 2 == 0 else (0, 0, 255) 
         
         cv2.putText(frame, label_text, (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3)
         
+        # 5. Picture-in-Picture (PiP)
         mnist_vis = env_test.envs[0].current_pixels.reshape(28, 28)
         mnist_vis = (mnist_vis - mnist_vis.min()) / (mnist_vis.max() - mnist_vis.min()) * 255
         mnist_vis = cv2.resize(mnist_vis.astype(np.uint8), (150, 150))
         mnist_vis = cv2.cvtColor(mnist_vis, cv2.COLOR_GRAY2RGB)
         
+        # Overlay on frame
         frame[10:160, -160:-10] = mnist_vis
         cv2.rectangle(frame, (-160, 10), (-10, 160), (255, 255, 255), 2)
 
@@ -505,6 +542,7 @@ def train_rl(pretrained_net=None):
             
     env_test.close()
 
+    # Save video artifact
     if len(final_frames) > 0:
         os.makedirs(DEFAULT_VIDEO_DIR, exist_ok=True)
         video_path = os.path.join(DEFAULT_VIDEO_DIR, "ant_hopfield_replay.mp4")
@@ -513,6 +551,7 @@ def train_rl(pretrained_net=None):
     else:
         print("ERROR: No frames were captured. Replay video not saved.")
         
+    # Return the trained custom network (feature extractor)
     model_save_path = os.path.join(DEFAULT_LOG_DIR, "hopfield_rl_model.pt")
     torch.save(model.policy.features_extractor.net.state_dict(), model_save_path)
     print(f"Saved trained HopfieldEnergyNet to {model_save_path}")
