@@ -43,9 +43,11 @@ model.eval()
 
 # Define input range for graph analysis
 # Define input range for graph analysis
-# MNIST (0-783) + Ant (794-820, assuming 27 inputs)
-ant_obs_size = 27
-input_neurons = list(range(n_input)) + list(range(794, 794 + ant_obs_size)) 
+# MNIST Task (0-784) + RL Task (800-1611: 27 Ant + 784 MNIST)
+# Note: These are used if use_states=True to clamp specific neurons
+mnist_range = list(range(784))
+rl_range = list(range(800, 800 + 811))
+input_neurons = sorted(list(set(mnist_range + rl_range))) 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Setup Data Loader for batch processing
@@ -112,38 +114,138 @@ def find_best_k(model, min_k=3000, max_k=15000, step=1000, max_components=20, in
     return best_k
 
 # Visualization
+# Topology-Aware Layout
+from models.integrated_hopfield_rl import V1_END, V2_END, VENTRAL_END, DORSAL_END
+
+def get_topology_pos(G):
+    pos = {}
+    import math
+    for node in G.nodes():
+        # Add random jitter to avoid perfect overlap
+        x_jitter = np.random.uniform(-0.5, 0.5)
+        y_jitter = np.random.uniform(-0.5, 0.5)
+        z_jitter = np.random.uniform(-0.2, 0.2)
+        
+        if node < V1_END: # V1 (Bottom)
+            # Grid layout for V1
+            row = (node % 22) 
+            col = (node // 22)
+            pos[node] = np.array([col + x_jitter, row + y_jitter, 0 + z_jitter])
+        elif node < V2_END: # V2 (Middle)
+            idx = node - V1_END
+            row = (idx % 20)
+            col = (idx // 20)
+            pos[node] = np.array([col + x_jitter, row + y_jitter, 15 + z_jitter])
+        elif node < VENTRAL_END: # Ventral (Top Left)
+            idx = node - V2_END
+            row = (idx % 17)
+            col = (idx // 17)
+            # Shift Left
+            pos[node] = np.array([col - 20 + x_jitter, row + y_jitter, 30 + z_jitter])
+        else: # Dorsal (Top Right)
+            idx = node - VENTRAL_END
+            row = (idx % 36) # Larger layer
+            col = (idx // 36)
+            # Shift Right
+            pos[node] = np.array([col + 20 + x_jitter, row + y_jitter, 30 + z_jitter])
+    return pos
+
 def visualize_3d(G, partition):
-    pos_3d = nx.spring_layout(G, dim=3, seed=42)
-    edge_x, edge_y, edge_z = [], [], []
-    for edge in G.edges():
+    # Hybrid Layout: Initialize with Topology, then Relax with Springs
+    print("Computing Topology-Aware Initialization...")
+    init_pos = get_topology_pos(G)
+    
+    # Scale initial positions to be compatible with spring layout's expected 0-1 range (optional, but good practice)
+    # Actually spring_layout centers things. Let's just pass it.
+    # We use a lower number of iterations to keep it "Anchored" to the structure
+    # 'k' is the optimal distance between nodes. 
+    # For 2500 nodes, we want small k. 1/sqrt(N) is default ~ 0.02.
+    print("Refining layout with Force-Directed Physics (Hybrid)...")
+    pos_3d = nx.spring_layout(G, dim=3, pos=init_pos, iterations=50, seed=42, scale=100.0)
+    
+    # Organize edges by weight strength for visualization
+    strong_edges_x, strong_edges_y, strong_edges_z = [], [], []
+    medium_edges_x, medium_edges_y, medium_edges_z = [], [], []
+    weak_edges_x, weak_edges_y, weak_edges_z = [], [], []
+    
+    weights = [G[u][v]['weight'] for u, v in G.edges()]
+    max_w = max(weights) if weights else 1.0
+    min_w = min(weights) if weights else 0.0
+    
+    # Simple binning logic
+    threshold_strong = min_w + 0.8 * (max_w - min_w)
+    threshold_medium = min_w + 0.5 * (max_w - min_w)
+    
+    for edge in G.edges(data=True):
         x0, y0, z0 = pos_3d[edge[0]]
         x1, y1, z1 = pos_3d[edge[1]]
-        edge_x += [x0, x1, None]
-        edge_y += [y0, y1, None]
-        edge_z += [z0, z1, None]
-    edge_trace = go.Scatter3d(x=edge_x, y=edge_y, z=edge_z, mode='lines', line=dict(width=2, color='gray'))
+        w = edge[2]['weight']
+        
+        if w >= threshold_strong:
+            strong_edges_x += [x0, x1, None]
+            strong_edges_y += [y0, y1, None]
+            strong_edges_z += [z0, z1, None]
+        elif w >= threshold_medium:
+            medium_edges_x += [x0, x1, None]
+            medium_edges_y += [y0, y1, None]
+            medium_edges_z += [z0, z1, None]
+        else:
+            weak_edges_x += [x0, x1, None]
+            weak_edges_y += [y0, y1, None]
+            weak_edges_z += [z0, z1, None]
     
-    node_x, node_y, node_z = [], [], []
-    node_colors = []
-    colors = {0: 'blue', 1: 'red', 2: 'green', 3: 'purple', 4: 'orange', 5: 'cyan', 6: 'yellow', 7: 'pink', 8: 'brown', 9: 'black'}
+    # Create three separate traces for edges
+    # Increase opacity/width to ensure they are seen
+    trace_weak = go.Scatter3d(x=weak_edges_x, y=weak_edges_y, z=weak_edges_z, mode='lines', 
+                              line=dict(width=1, color='rgba(200, 200, 200, 0.1)'), name='Weak Connections', hoverinfo='none')
+    
+    trace_medium = go.Scatter3d(x=medium_edges_x, y=medium_edges_y, z=medium_edges_z, mode='lines', 
+                                line=dict(width=3, color='rgba(100, 100, 100, 0.4)'), name='Medium Connections', hoverinfo='none')
+                                
+    trace_strong = go.Scatter3d(x=strong_edges_x, y=strong_edges_y, z=strong_edges_z, mode='lines', 
+                                line=dict(width=6, color='rgba(0, 0, 0, 0.8)'), name='Strong Connections', hoverinfo='none')
+    
+    # Split Nodes into Regional Traces for Legend
+    v1_x, v1_y, v1_z = [], [], []
+    v2_x, v2_y, v2_z = [], [], []
+    ventral_x, ventral_y, ventral_z = [], [], []
+    dorsal_x, dorsal_y, dorsal_z = [], [], []
+    
     for node in G.nodes():
         x, y, z = pos_3d[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_z.append(z)
-        node_colors.append(colors.get(partition.get(node, 0), 'gray'))
-        
-    node_trace = go.Scatter3d(x=node_x, y=node_y, z=node_z, mode='markers+text', marker=dict(size=10, color=node_colors), text=list(G.nodes()))
-    fig = go.Figure(data=[edge_trace, node_trace], layout=go.Layout(
-        title='3D Emergent Neuron Clusters', 
-        width=800,
-        height=800,
-        scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z', aspectmode='cube')
-    ))
-    # fig.show()
+        if node < V1_END:
+            v1_x.append(x); v1_y.append(y); v1_z.append(z)
+        elif node < V2_END:
+            v2_x.append(x); v2_y.append(y); v2_z.append(z)
+        elif node < VENTRAL_END:
+            ventral_x.append(x); ventral_y.append(y); ventral_z.append(z)
+        else:
+            dorsal_x.append(x); dorsal_y.append(y); dorsal_z.append(z)
+
+    # Node Traces
+    trace_v1 = go.Scatter3d(x=v1_x, y=v1_y, z=v1_z, mode='markers', marker=dict(size=4, color='blue', opacity=0.8), name='V1 (Input/Visual)')
+    trace_v2 = go.Scatter3d(x=v2_x, y=v2_y, z=v2_z, mode='markers', marker=dict(size=4, color='green', opacity=0.8), name='V2 (Associative)')
+    trace_ventral = go.Scatter3d(x=ventral_x, y=ventral_y, z=ventral_z, mode='markers', marker=dict(size=4, color='red', opacity=0.8), name='Ventral (Memory/MNIST)')
+    trace_dorsal = go.Scatter3d(x=dorsal_x, y=dorsal_y, z=dorsal_z, mode='markers', marker=dict(size=4, color='orange', opacity=0.8), name='Dorsal (Motor/RL)')
+    
+    layout = go.Layout(
+        title='3D Visual-Motor Brain (Hybrid Force-Directed)', 
+        width=1200,
+        height=1000,
+        scene=dict(
+            xaxis=dict(title='X'), 
+            yaxis=dict(title='Y'), 
+            zaxis=dict(title='Z'), 
+            aspectmode='data'
+        ),
+        showlegend=True,
+        legend=dict(x=0, y=1)
+    )
+    
+    fig = go.Figure(data=[trace_weak, trace_medium, trace_strong, trace_v1, trace_v2, trace_ventral, trace_dorsal], layout=layout)
     output_file = "energy_graph.html"
     fig.write_html(output_file)
-    print(f"Saved 3D graph to {output_file}")
+    print(f"Saved Hybrid 3D graph with Legends to {output_file}")
 
 # Run clustering
 batch, _ = next(iter(train_loader))
@@ -151,7 +253,7 @@ batch, _ = next(iter(train_loader))
 # This is important if you use use_states=True
 batch = batch.flatten(1).to(device)
 
-best_k = find_best_k(model, min_k=3000, max_k=15000, step=1000, max_components=20, input_neurons=input_neurons, input_values=batch, use_states=False)
+best_k = find_best_k(model, min_k=10000, max_k=50000, step=2000, max_components=50, input_neurons=input_neurons, input_values=batch, use_states=False)
 G = get_energy_graph(model, k=best_k, input_neurons=input_neurons, input_values=batch, use_states=False)
 communities = greedy_modularity_communities(G, weight='weight')
 partition = {node: i for i, comm in enumerate(communities) for node in comm}
