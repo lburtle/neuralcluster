@@ -8,6 +8,7 @@ from torchvision import datasets, transforms
 import numpy as np
 import gymnasium as gym
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
@@ -25,10 +26,10 @@ DEFAULT_VIDEO_DIR = os.path.expanduser("~/Projects/PIML/videos")
 # --- Constants ---
 NUM_NEURONS = 3500
 # V1-V5 Topology
-# V1: 0-500 (Simple)
-# V2: 500-900 (Complex/Associative)
-# Ventral (MNIST): 900-1200
-# Dorsal (RL): 1200-1500
+# V1: 0-1000 (Simple)
+# V2: 1000-1800 (Complex/Associative)
+# Ventral (MNIST): 1800-2300
+# Dorsal (RL): 2300-3500
 V1_END = 1000
 V2_END = 1800
 VENTRAL_END = 2300
@@ -200,11 +201,12 @@ class VisualAntWrapper(gym.Wrapper):
             # High reward for movement
             reward += forward_vel * 15.0 # Increased incentive to GO
         else:
-            # SURVIVAL SETTING: The Cliff
-            # Moving on Odd is not just a penalty, it is Death.
-            if abs(forward_vel) > 0.03:
-                reward -= 100.0 # Massive penalty
-                terminated = True # Immediate termination
+            # SURVIVAL SETTING: The Slope (Continuous Gradient)
+            # We provide a linear gradient so the agent feels "less pain" as it slows down.
+            if forward_vel > 0:
+                reward -= forward_vel * 100.0 # Linear penalty
+            
+            # Note: No termination needed. The gradient is the guide.
 
         full_obs = np.concatenate([obs, self.current_pixels])
         return full_obs, reward, terminated, truncated, info
@@ -320,6 +322,12 @@ class BridgeMonitor:
         self.d_range = d_range
         self.pbar = None
         
+        # Store Initial Weights for Plasticity Verification
+        # (We detach and clone to keep a static reference)
+        with torch.no_grad():
+            self.initial_bridge_weights = self.model.weights[v_range[0]:v_range[1], 
+                                                             d_range[0]:d_range[1]].detach().clone()
+        
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
         dataset = datasets.MNIST('./data', train=False, transform=transform)
         self.even_img, self.odd_img = None, None
@@ -356,6 +364,65 @@ class BridgeMonitor:
                 })
         
         print(f"\n[Bridge Check] Step {step_count}: Dist={dist:.4f}, Sim={cos_sim:.4f}, W_Norm={w_norm:.4f}")
+        
+        # --- Visualization: Bridge Heatmap ---
+        self.visualize_bridge_heatmaps(step_count)
+
+    def visualize_bridge_heatmaps(self, step_count):
+        print("\n--- Generating Bridge Connectivity Heatmaps ---")
+        self.model.eval()
+        
+        # Define block indices
+        # Ventral (What): 1800-2300
+        # Dorsal (Action): 2300-3500
+        v_start, v_end = 1800, 2300
+        d_start, d_end = 2300, 3500
+        
+        # Extract the bridge weights from the full weight matrix
+        # We want weights WHERE Ventral is the input and Dorsal is the output
+        with torch.no_grad():
+            full_weights = self.model.weights * self.model.connectivity_mask
+            bridge_weights = full_weights[v_start:v_end, d_start:d_end].cpu()
+            
+            # Use stored initial weights (on same device as when created, likely GPU)
+            # Make sure to move to CPU for plotting
+            current_w = bridge_weights.cpu()
+            initial_w = self.initial_bridge_weights.cpu()
+            
+            diff_w = current_w - initial_w
+            
+            # --- DEBUG LOGGING: Drift ---
+            drift_norm = torch.norm(diff_w, p='fro').item()
+            print(f"[Heatmap Debug] Weight Drift (L2 Distance from Start): {drift_norm:.5f}")
+
+        # 1. Plot Current State
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(current_w.numpy(), cmap="RdBu_r", center=0)
+        plt.title(f"Functional Bridge step {step_count}: Ventral (Y) to Dorsal (X)\nL2 Drift: {drift_norm:.4f}")
+        plt.xlabel("Dorsal Neurons (Motor indices 2300-3500)")
+        plt.ylabel("Ventral Neurons (Vision indices 1800-2300)")
+        
+        save_path = f"images/bridge_heatmap.png"
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
+        print(f"Saved bridge connectivity heatmap to {save_path}")
+        
+        # 2. Plot Difference (Plasticity)
+        plt.figure(figsize=(10, 8))
+        # Use a diverging map centered at 0 to show increase (Red) vs Decrease (Blue)
+        # Robust scale: +/- 3 sigma of the diff
+        limit = 3 * diff_w.std().item()
+        sns.heatmap(diff_w.numpy(), cmap="RdBu_r", center=0, vmin=-limit, vmax=limit)
+        plt.title(f"Synaptic Plasticity (Change from Start) - Step {step_count}")
+        plt.xlabel("Dorsal Neurons (Motor)")
+        plt.ylabel("Ventral Neurons (Vision)")
+        
+        diff_path = f"images/bridge_diff.png"
+        plt.tight_layout()
+        plt.savefig(diff_path)
+        plt.close()
+        print(f"Saved bridge DIFFERENCE heatmap to {diff_path}")
 
 class HopfieldDiagnosticCallback(BaseCallback):
     def __init__(self, monitor, check_freq=5000): 

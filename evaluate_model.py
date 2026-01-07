@@ -126,10 +126,10 @@ def visualize_bridge_heatmaps(model):
     model.eval()
     
     # Define block indices
-    # Ventral (What): 900-1200
-    # Dorsal (Action): 1200-1500
-    v_start, v_end = 900, 1200
-    d_start, d_end = 1200, 1500
+    # Ventral (What): 1800-2300
+    # Dorsal (Action): 2300-3500
+    v_start, v_end = 1800, 2300
+    d_start, d_end = 2300, 3500
     
     # Extract the bridge weights from the full weight matrix
     # We want weights WHERE Ventral is the input and Dorsal is the output
@@ -140,8 +140,8 @@ def visualize_bridge_heatmaps(model):
     plt.figure(figsize=(10, 8))
     sns.heatmap(bridge_weights, cmap="RdBu_r", center=0)
     plt.title("Functional Bridge: Ventral (Y) to Dorsal (X) Connectivity")
-    plt.xlabel("Dorsal Neurons (Motor indices 1200-1500)")
-    plt.ylabel("Ventral Neurons (Vision indices 900-1200)")
+    plt.xlabel("Dorsal Neurons (Motor indices 2300-3500)")
+    plt.ylabel("Ventral Neurons (Vision indices 1800-2300)")
     
     save_path = "images/bridge_heatmap.png"
     plt.tight_layout()
