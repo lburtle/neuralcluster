@@ -29,7 +29,7 @@ We analyze the network to observe how neurons group together based on connection
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ### `models/`
 Contains the core neural network implementations and training notebooks.
