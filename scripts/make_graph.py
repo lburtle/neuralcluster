@@ -259,5 +259,4 @@ print("Detected clusters:", partition)
 cluster_sizes = [len(comm) for comm in communities]
 print("Cluster sizes:", cluster_sizes)
 
-# Note: The 3D visualization is very slow for 1000 nodes.
 visualize_3d(G, partition)
