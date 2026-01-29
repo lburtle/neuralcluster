@@ -1,52 +1,95 @@
-# neuralcluster
- -------------------------------
-### Written to utilize GPU or CPU
- 
-## Two Models:
-#### - Attention Based Neural Cluster
-#### - Energy Based Neural Cluster
-## Tasks
-### 1,
-#### Trained on XOR and AND truth tables (0, 1, 1, 0), (0, 0, 0, 1)
-#### Given initial inputs [[-1.,-1.], [-1.,1.], [1.,-1.], [1.,1.]] in the form of a tensor
-### 2.
-#### MNIST Dataset: 28 x 28 pixel grid for numbers -> 784 input neurons
-#### 10 output neurons for classification
-#### Some intermediary neurons added for padding to learn patterns
+# NeuralCluster
 
+**NeuralCluster** is a research repository investigating **emergent behavior** and **functional clustering** within energy-based neural networks (specifically Hopfield-style networks). 
 
-## Training Method
-#### Since there is no clear input and output layer, this model instead relies on neuron injection
-#### Looks like: input_neurons = [3, 7] output_neuron = [5]
-#### This trains a specific pathway through the network to optimize the task
-#### Theoretically allows for different tasks to be encoded into different clusters
+The project explores how distinct functional regions—such as sensory input (Vision) and motor control (RL)—can be integrated into a single, unstructured neural fabric, allowing "bridges" and specialized clusters to form naturally through training.
 
+---
 
-## Emergent Behavior
-#### The goal is to observe distinct clusters forming within the network
-#### These clusters are formed based on how strong the connections are between them
-#### Visualized using a clustering algorithm which determines how many edges/connections to consider in the projection and assigning each neuron to a cluster
+## 🧠 Core Concepts
 
-### 4 Task network
+### 1. Energy-Based Learning
+Unlike traditional feed-forward networks, models in this repository (like `HopfieldEnergyNet`) rely on **neuron injection** and **energy minimization**. The network settles into a stable low-energy state that represents the solution or classification.
+
+### 2. Neuromorphic Architecture
+The network is conceptually divided into regions to mimic biological structures, though connections can form globally:
+- **V1 (Sensory)**: Input handling.
+- **V2 (Associative)**: Intermediate processing.
+- **Ventral Stream**: The "What" pathway (e.g., MNIST digit recognition).
+- **Dorsal Stream**: The "Where/Action" pathway (e.g., RL/Motor control).
+
+### 3. Emergent Clustering
+We analyze the network to observe how neurons group together based on connection strength. This is visualized using graph theory techniques to show how the "Vision" part of the brain talks to the "Motor" part.
+
+---
+
+## 📂 Repository Structure
+
+### `models/`
+Contains the core neural network implementations and training notebooks.
+- **`integrated_hopfield_rl.py`**: The primary model definition and training script. Integrates MNIST classification with Reinforcement Learning tasks.
+- **`transformernet.ipynb`**: Exploration of attention-based architectures.
+- **`4taskhopfield.ipynb`**: Earlier experiments with multi-task logic gates (XOR/AND).
+
+### `scripts/`
+Analysis and visualization tools to inspect the "brain" of the network.
+- **`make_graph.py`**: Generates **3D interactive graphs** of the neural topology, visualizing clusters and connection weights using NetworkX and Plotly.
+- **`EI.py`**: Analyzes the **Physics of the Network**. Checks Excitatory/Inhibitory balance (E/I) and calculates the **Spectral Radius** to ensure the network operates at the "Edge of Chaos" (Critical regime).
+- **`evaluate_model.py`**: Runs diagnostics to verify if specific functional bridges (e.g., Vision sees a '2' -> Motor plans 'Action A') are active.
+
+---
+
+## 📊 Visualizations
+
+### Network Topology & Clustering
+*Visualizing the formation of clusters based on connection strength.*
+
+![3D Optimized Network](images/3D-optimizedk.png)
+
+### Task-Specific Networks
+**4-Task Logic Network**
 ![4 task network](images/4task30.png)
-![4 task in 3D](images/3D-optimizedk.png)
 
-### MNIST network
+**MNIST Classification Network**
 ![MNIST network](images/3D_mnist.png)
 
-### MNIST + RL
-![mnist + rl](images/3D_MNIST_RL.png)
+**Integrated MNIST + RL Network**
+![MNIST + RL](images/3D_MNIST_RL.png)
 
-## Network Types Explained
-### Attention Based:
-#### This uses attention between every neuron in the network to allow for connections with no structure (specifically no layers)
-#### Connections are updated based on howw strongly each neuron attends to each other for the given task
-#### Connections are not localized, but instead global, allowing connections over any distance
+---
 
-### Energy Based (Cooler)
-#### Hopfield Energy Network
-#### Have to review
-#### Desired structure where neurons can build connections across entire network, but more local ones are preferred
-#### Entropy used as a means of loss to optimize the model
-#### Network settles to lowest/most stable energy state
-#### To be continued
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.8+
+- PyTorch
+- NetworkX
+- Plotly
+- Matplotlib
+- Kneed (Knee detection for clustering)
+
+### Running the Analysis
+
+**1. Check Network Physics (Stability)**
+```bash
+python scripts/EI.py
+```
+*Output: Spectral radius and E/I balance plots.*
+
+**2. Visualizing the Brain Graph**
+```bash
+python scripts/make_graph.py
+```
+*Output: Generates a 3D HTML graph of the network.*
+
+**3. Evaluate Performance**
+```bash
+python scripts/evaluate_model.py
+```
+*Output: MNIST accuracy and Bridge Activation heatmaps.*
+
+---
+
+## 🔮 Future Directions
+- **Attention-Based Clustering**: Further exploration of global attention mechanisms (Transformer-style) vs local energy dynamics.
+- **Scalability**: Scaling the neuron count while maintaining the "Critical" stability regime.
