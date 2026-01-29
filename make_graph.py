@@ -8,19 +8,15 @@ from torchvision import datasets, transforms
 import sys
 import os
 
-# Ensure we can import from the models directory
 sys.path.append(os.getcwd())
 try:
     from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device, NUM_NEURONS, DEFAULT_LOG_DIR
 except ImportError:
-    # If running from PIML/ directly, models is a package
     from models.integrated_hopfield_rl import HopfieldEnergyNet, train_mnist, device, NUM_NEURONS, DEFAULT_LOG_DIR
 
 # Configuration
 n_input = 784 # MNIST input size
 
-# Load or Train Model
-# Since we don't have a saved file, we'll train one quickly or use the function
 # Load Model
 model_path = os.path.join(DEFAULT_LOG_DIR, "hopfield_rl_model.pt")
 model = HopfieldEnergyNet(num_neurons=NUM_NEURONS).to(device)
@@ -114,6 +110,10 @@ def find_best_k(model, min_k=3000, max_k=15000, step=1000, max_components=20, in
     return best_k
 
 # Visualization
+
+## This part is more for my own benefit, to better understand the graph structure
+## and to have a nice visual layout, the actual graph can be visualized many ways
+
 # Topology-Aware Layout
 from models.integrated_hopfield_rl import V1_END, V2_END, VENTRAL_END, DORSAL_END
 
@@ -155,11 +155,9 @@ def visualize_3d(G, partition):
     print("Computing Topology-Aware Initialization...")
     init_pos = get_topology_pos(G)
     
-    # Scale initial positions to be compatible with spring layout's expected 0-1 range (optional, but good practice)
-    # Actually spring_layout centers things. Let's just pass it.
+    # Scale initial positions to be compatible with spring layout's expected 0-1 range
     # We use a lower number of iterations to keep it "Anchored" to the structure
     # 'k' is the optimal distance between nodes. 
-    # For 2500 nodes, we want small k. 1/sqrt(N) is default ~ 0.02.
     print("Refining layout with Force-Directed Physics (Hybrid)...")
     pos_3d = nx.spring_layout(G, dim=3, pos=init_pos, iterations=50, seed=42, scale=100.0)
     

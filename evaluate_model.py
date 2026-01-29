@@ -176,9 +176,6 @@ def run_contrast_diagnostic(model, device):
     # We want to look specifically at the Dorsal (Motor) indices: 1200-1500
     dorsal_indices = torch.arange(1200, 1500).to(device)
     
-    # [Code to fetch 1 Even and 1 Odd sample as before...]
-    # Assume even_img and odd_img are prepared
-    
     with torch.no_grad():
         # Settle the network for both inputs
         even_state = model(list(range(784)), even_img, steps=100)

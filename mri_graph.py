@@ -8,6 +8,10 @@ from torchvision import datasets, transforms
 import sys
 import os
 
+## This is another way to visualize the connectivity of the network
+## It's not as pretty as the 3D layout, but it's faster and more flexible
+## Also allows us to view the connections in a more clear way
+
 # Ensure we can import from the models directory
 sys.path.append(os.getcwd())
 try:
@@ -41,8 +45,6 @@ else:
 
 model.eval()
 
-# Define input range for graph analysis
-# Define input range for graph analysis
 # MNIST Task (0-784) + RL Task (800-1611: 27 Ant + 784 MNIST)
 # Note: These are used if use_states=True to clamp specific neurons
 mnist_range = list(range(784))

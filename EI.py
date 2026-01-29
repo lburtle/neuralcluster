@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+## This allows us to see the E/I balance of the network
+## and to see if the network is stable or not
+
 # --- 1. SETUP (Use your existing class definition) ---
 NUM_NEURONS = 3500
 # Re-define the class structure briefly to load weights (or import from your file)
