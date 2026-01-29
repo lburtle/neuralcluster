@@ -36,7 +36,13 @@ VENTRAL_END = 2300
 DORSAL_END = NUM_NEURONS
 
 # --- SURVIVAL SETTING: High Protection for Vision ---
-EWC_LAMBDA = 5000.0     # Increased from 2000 to 5000 to prevent "Blindness"
+## Elastic Weight Consolidation (EWC) Lambda
+## This is a hyperparameter that controls the amount of regularization
+## The higher the value, the more regularization
+## The lower the value, the less regularization
+## The default value is 1000.0
+## The value is increased to 5000.0 to prevent "Blindness"
+EWC_LAMBDA = 5000.0
 
 # --- Device Setup ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -519,7 +525,6 @@ def train_rl(pretrained_net=None):
             # so the Motor neuron is allowed to change the weight of that synapse.
             # Rows: VENTRAL_END to DORSAL_END (Motor Neurons receiving input)
             # Cols: 0 to VENTRAL_END (Vision Neurons sending output)
-            # (No action needed, as we simply didn't zero this block)
             
             return grad_clone
 
