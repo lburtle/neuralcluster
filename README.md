@@ -50,20 +50,20 @@ Analysis and visualization tools to inspect the "brain" of the network.
 ### Network Topology & Clustering
 *Visualizing the formation of clusters based on connection strength.*
 
-![3D Optimized Network](images/3D-optimizedk.png)
+<img src="images/3D-optimizedk.png" width="50%"/>
 
 ### Task-Specific Networks
 **4-Task Logic Network**
 
-![](images/4task30.png)
+<img src="images/4task30.png" width="50%"/>
 
 **MNIST Classification Network**
 
-![](images/3D_mnist.png)
+<img src="images/3D_mnist.png" width="50%"/>
 
 **Integrated MNIST + RL Network**
 
-![](images/3D_MNIST_RL.png)
+<img src="images/3D_MNIST_RL.png" width="50%"/>
 
 ---
 
