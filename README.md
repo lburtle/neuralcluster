@@ -100,8 +100,19 @@ python scripts/make_graph.py
 
 
 ---
+## Why this doesn't work
+
+Unfortunately, through enough trial and error, I realized that this method would not work, no matter how many ways I tried. While there are definitely improvements I could have made in the training process and in other aspects, the main issue lies in the fundamental behavior of Hopfield Networks. With the tasks that I gave the model to learn, I explicitly chose them to be significantly different, yet also functions that are necessary for any real, complex living creature to be able to execute, being vision and motor control. In this case, motor control was specifically controlled and purposeful movement, not just random gyration. 
+
+The most critical feature of Hopfield Networks, which explains why they are able to succeed in image recognition (MNIST) yet fail with RL tasks (movement) is that they are **associative memory machines**. When training a Hopfield Network, we learn the weights via the Hebbian Learning Rule:
+
+$`w_{ij} = \frac{1}{N} \sum_{\mu=1}^{M} \xi_i^\mu \xi_j^\mu`$
+
+Where $`\xi_i^\mu`$ is the state of the i-th neuron for the $`\mu`$-th pattern, likewise for the j-th neuron, and $`\frac{1}{N}`$ is a normalization term. With this, patterns are sculpted into the weight matrix, creating attractor basins in the energy landscape. Building off of this, usually it is better suited for learning fewer, more distinct patterns, since more orthogonal patterns are better stored together in the same matrix, otherwise their attractor basins overlap. However, we still observe that the MNIST digits were distinct enough when flattened to be aptly recognized and classified. 
+
+But this only holds up well for pattern recognition. We see a different side when we introduce RL. When constantly trying to reinforce the network towards **patterns of behavior**, the network is constantly being told to rewire for each instance, where the inputs that it is trying to learn are all nearly identical, but one combination may be positive and another negative. When trying to finely teach an associative memory machine such a fine task, it is akin to just constantly carving through energy landscape and making one massive basin. The model will have no signal of when to move or what to do. This exact behavior is observed when we evaluate the model. Even if we separated the two tasks, it still either moves sporadically, or chooses to stay still no matter what, showing that it cannot distinguish any decision boundaries, or between two attractor basins. 
+
 
 ## TO be added:
-- RL env explanation
-- Results
-- Section on why it doesn't work
+- RL env explanation (on PC so I can add image)
+- Results            (on PC so I can add real results (I think MNIST was around 97%)
