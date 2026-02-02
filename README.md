@@ -105,7 +105,3 @@ python scripts/make_graph.py
 - RL env explanation
 - Results
 - Section on why it doesn't work
-
-## Future Directions
-- **Attention-Based Clustering**: Further exploration of global attention mechanisms (Transformer-style) vs local energy dynamics.
-- **Scalability**: Scaling the neuron count while maintaining the "Critical" stability regime.
