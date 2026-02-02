@@ -47,15 +47,16 @@ Analysis and visualization tools to inspect the "brain" of the network.
 
 ## Visualizations
 
-### Network Topology & Clustering
-*Visualizing the formation of clusters based on connection strength.*
-
-<img src="images/3D-optimizedk.png" width="50%"/>
-
 ### Task-Specific Networks
 **4-Task Logic Network**
 
+2D connection visualization
+
 <img src="images/4task30.png" width="50%"/>
+
+3D connection visualization
+
+<img src="images/3D-optimizedk.png" width="50%"/>
 
 **MNIST Classification Network**
 
@@ -102,7 +103,7 @@ python scripts/make_graph.py
 ---
 ## Why this doesn't work
 
-Unfortunately, through enough trial and error, I realized that this method would not work, no matter how many ways I tried. While there are definitely improvements I could have made in the training process and in other aspects, the main issue lies in the fundamental behavior of Hopfield Networks. With the tasks that I gave the model to learn, I explicitly chose them to be significantly different, yet also functions that are necessary for any real, complex living creature to be able to execute, being vision and motor control. In this case, motor control was specifically controlled and purposeful movement, not just random gyration. 
+Unfortunately, through enough trial and error, I realized that this method would not work. While there are definitely improvements I could have made in the training process and in other aspects, the main issue lies in the fundamental behavior of Hopfield Networks. With the tasks that I gave the model to learn, I explicitly chose them to be significantly different, yet also functions that are necessary for any real, complex living creature to be able to execute, being vision and motor control. In this case, motor control was specifically controlled and purposeful movement, not just random gyration. 
 
 The most critical feature of Hopfield Networks, which explains why they are able to succeed in image recognition (MNIST) yet fail with RL tasks (movement) is that they are **associative memory machines**. When training a Hopfield Network, we learn the weights via the Hebbian Learning Rule:
 
