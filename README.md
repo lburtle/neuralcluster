@@ -107,7 +107,9 @@ Unfortunately, through enough trial and error, I realized that this method would
 
 The most critical feature of Hopfield Networks, which explains why they are able to succeed in image recognition (MNIST) yet fail with RL tasks (movement) is that they are **associative memory machines**. When training a Hopfield Network, we learn the weights via the Hebbian Learning Rule:
 
-$`w_{ij} = \frac{1}{N} \sum_{\mu=1}^{M} \xi_i^\mu \xi_j^\mu`$
+<p align="center">
+$w_{ij} = \frac{1}{N} \sum_{\mu=1}^{M} \xi_i^\mu \xi_j^\mu$
+</p>
 
 Where $`\xi_i^\mu`$ is the state of the i-th neuron for the $`\mu`$-th pattern, likewise for the j-th neuron, and $`\frac{1}{N}`$ is a normalization term. With this, patterns are sculpted into the weight matrix, creating attractor basins in the energy landscape. Building off of this, usually it is better suited for learning fewer, more distinct patterns, since more orthogonal patterns are better stored together in the same matrix, otherwise their attractor basins overlap. However, we still observe that the MNIST digits were distinct enough when flattened to be aptly recognized and classified. 
 
