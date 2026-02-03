@@ -556,7 +556,6 @@ def train_rl(pretrained_net=None):
     callback = CallbackList([diag_callback, sched_callback])
 
     # 5. Train for Survival
-    # We use 500k steps to ensure the 'Aha!' moment happens
     print("Training for 200,000 steps with Gating Active...")
     model.learn(total_timesteps=200000, callback=callback)
     
