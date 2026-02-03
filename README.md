@@ -113,7 +113,7 @@ python scripts/make_graph.py
 ---
 ## Results
 
-When training the network on both the MNIST recognition task and RL motor task, we see a degradation in the performance on the MNIST set. On my most recent run, the model was trained for 200,000 steps on the RL task. A test accuracy of **10.53%** is observed (at least in my most recent run) meaning that it is essentially guessing randomly. The model **technically** correctly doesn't move on an odd digit, but over mutliple runs, it is obvious that it either fails to learn the odd/even rule, or just fails to learn proper locomotion. We can visualize the test accuracy of the MNIST classification:
+When training the network on both the MNIST recognition task and RL motor task, we see a degradation in the performance on the MNIST set. On my most recent run, the model was trained for on 10,000 MNIST images in batches of 64 and 200,000 steps on the RL task. A test accuracy of **10.53%** is observed (at least in my most recent run) meaning that it is essentially guessing randomly. The model **technically** correctly doesn't move on an odd digit, but over mutliple runs, it is obvious that it either fails to learn the odd/even rule, or just fails to learn proper locomotion. We can visualize the test accuracy of the MNIST classification:
 
 <img src="images/mnist_evaluation_results.png" width="75%"/>
 
