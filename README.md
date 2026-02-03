@@ -54,17 +54,25 @@ Analysis and visualization tools to inspect the "brain" of the network.
 
 2D connection visualization
 
+(Flat clustered projection of the 4 task network)
+
 <img src="images/4task30.png" width="50%"/>
 
 3D connection visualization
+
+(3D clustered projection of the 4 task network. Shows the depth of the clusters that was not apparent in 2 dimensions. No overlapping clusters. I recommend running the code itself for the interactive version)
 
 <img src="images/3D-optimizedk.png" width="50%"/>
 
 **MNIST Classification Network**
 
+(Clustered 3D visualization of the MNIST only trained network. Showed clear separating between clusters. Unsure if they were functional groups. Still just a semi-yarn ball of neurons.)
+
 <img src="images/3D_mnist.png" width="50%"/>
 
 **Integrated MNIST + RL Network**
+
+(Clustered 3D visualization of the network trained on MNIST and RL tasks. Showed more pronounced subgroups within the network. No longer just a yarn ball, but instead had physically separated groups.)
 
 <img src="images/3D_MNIST_RL.png" width="50%"/>
 
@@ -103,6 +111,33 @@ python scripts/make_graph.py
 
 
 ---
+## Results
+
+When training the network on both the MNIST recognition task and RL motor task, we see a degradation in the performance on the MNIST set. On my most recent run, the model was trained for 200,000 steps on the RL task. A test accuracy of **10.53%** is observed (at least in my most recent run) meaning that it is essentially guessing randomly. The model **technically** correctly doesn't move on an odd digit, but over mutliple runs, it is obvious that it either fails to learn the odd/even rule, or just fails to learn proper locomotion. We can visualize the test accuracy of the MNIST classification:
+
+<img src="images/mnist_evaluation_results.png" width="75%"/>
+
+However, more was monitored in this network than simply the performance. The goal was not simply to see if the network would learn, but if it could build functional connections between the tasks. This was measured with a few different metrics. First, the cosine similarity was measured between the states of the network when presented with an even or odd digit. This was to measure how dissimilar the "thoughts" or saved states were for each input. It acheived a **0.5419**, meaning that the two vectors were fairly similar, with a 1.0 meaning total similarity, and -1.0 being completely different. The Euclidean Distance, or L2 Norm, was measured between these two state vectors as well to determine if the network had separated the even and odd states into distinct classes in the latent motor space. The model achieved a distance of **8.3904**. 
+
+I also monitored the connection strength of the neurons specifically contained within the bridge between the Ventral and Dorsal blocks. If it had a value of 0, that meant that there was no connection between the two, meaning there is no cross talk between functional regions. Conversely, a higher value would proportionately indicate the strength of connection between the two. The goal was to allow for these connections to emergently develop, allowing the model to figure out their importance if any, in an integrated task. These activation values are the mean values of all neurons in their blocks. 
+
+On the digit 2, I measured a Ventral Block activation of **0.5462** and Dorsal Block activation of **0.6129**. 
+On the digit 7, I measured a Ventral Block activation of **0.4165** and Dorsal Block activation of **0.4772**. 
+The important takeaway is the similarity in the values. Since they are fairly or very similar, this means that the bridge did not learn the even/odd rule, but it still maintained a connection. We can get a better understanding of what this means by looking at a heatmap of the bridge connections: 
+
+<img src="images/bridge_heatmap.png" width="50%"/>
+
+It is clear that, while the connections exist, there are not strong patterns or relationships between neuron groups. If there were, we might see something more stratified patterns in the heatmap. Another, less important result to note is the Synaptic Plasticity heatmap, showing which neurons are changing within the bridge at certain intervals. 
+
+<img src="bridge_diff.png" width="50%"/>
+
+It may look very similar to the previous heatmap, and that is because they do look similar. But that is because they are essentially just noise. This diff map shows that there is essentially random small adjustments being made towards the end of the training, showing no real signal or direction. The weights are likely randomly adjusting throughout training to try and find some adequate configuration, but the network fails to actually grasp the true relationship, so the connections stay random.
+
+Finally, on a more neuroscience side, I also visualized the Excitatory/Inhibitory (E-I) balance amongst the weights. This reflects the balance between positive and negative connections between neurons, to ensure that the network remains at the regime critical point without experiencing overexcitation or overinhibition. This would look like neurons amplifying signals into white noise or killing signals as they pass through. This is less relevant for Hopfield networks, however, as they do not experience the same dynamics as brains. But it is still helpful to ensure that the network remains at the computational critical point. I also have the Eigenvalue Spectrum of the weights to visualize the eigenvalues of memories encoded in the weight matrix. Greater values equate to stronger memories, or in the context of Hopfield Networks, deeper attractor basins in the energy landscape. The Unit Circle boundary shows the limit to the signal size of the memories, where they are then bound by tanh to prevent from the signal exploding.
+
+<img src="images/EIgraph.png" width="75%"/>
+
+---
 ## Why this doesn't work
 
 Unfortunately, through enough trial and error, I realized that this method would not work. While there are definitely improvements I could have made in the training process and in other aspects, the main issue lies in the fundamental behavior of Hopfield Networks. With the tasks that I gave the model to learn, I explicitly chose them to be significantly different, yet also functions that are necessary for any real, complex living creature to be able to execute, being vision and motor control. In this case, motor control was specifically controlled and purposeful movement, not just random gyration. 
@@ -117,6 +152,6 @@ Where $`\xi_i^\mu`$ is the state of the i-th neuron for the $`\mu`$-th pattern, 
 
 But this only holds up well for pattern recognition. We see a different side when we introduce RL. When constantly trying to reinforce the network towards **patterns of behavior**, the network is constantly being told to rewire for each instance, where the inputs that it is trying to learn are all nearly identical, but one combination may be positive and another negative. When trying to finely teach an associative memory machine such a fine task, it is akin to just constantly carving through energy landscape and making one massive basin. The model will have no signal of when to move or what to do. This exact behavior is observed when we evaluate the model. Even if we separated the two tasks, it still either moves sporadically, or chooses to stay still no matter what, showing that it cannot distinguish any decision boundaries, or between two attractor basins. 
 
-
-## TO be added:
-- Results            (on PC so I can add real results (I think MNIST was around 97%)
+### Possible things to add
+- EWC implementation explanation
+- Distance Penalty (relates back to emphasis on localized clusters)
