@@ -129,7 +129,7 @@ The important takeaway is the similarity in the values. Since they are fairly or
 
 It is clear that, while the connections exist, there are not strong patterns or relationships between neuron groups. If there were, we might see something more stratified patterns in the heatmap. Another, less important result to note is the Synaptic Plasticity heatmap, showing which neurons are changing within the bridge at certain intervals. 
 
-<img src="bridge_diff.png" width="50%"/>
+<img src="images/bridge_diff.png" width="50%"/>
 
 It may look very similar to the previous heatmap, and that is because they do look similar. But that is because they are essentially just noise. This diff map shows that there is essentially random small adjustments being made towards the end of the training, showing no real signal or direction. The weights are likely randomly adjusting throughout training to try and find some adequate configuration, but the network fails to actually grasp the true relationship, so the connections stay random.
 
