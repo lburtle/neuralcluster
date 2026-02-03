@@ -22,7 +22,9 @@ To achieve a more complex architecture, I implemented a biologically inspired de
 
 The ***Sensory block (V1)*** is where the 28x28 MNIST images were ingested. From there, it is immediately connected to the ***Associative block (V2)*** which handles forming higher order pattern recognition ***without*** Convolutional layers. This is in essence just an MLP, but with directed flow through an energy network. The number patterns are then passed to the ***Ventral Stream*** where they are used for final digit classification. 
 
-On the other side, the ***Dorsal Stream*** handles the entirety of the RL task, where the motor and positional feed are the inputs and the motor control is the output. The important feature is the bridge between the **Dorsal** and **Ventral** which act as a pseudo long-range connection that allows communication between different functional areas. In this case, the MNIST images were incorporated into the RL environment, and whether the digit was **Odd** or **Even** would dictate the reward for moving, motivating to prevent movement during one case. 
+On the other side, the ***Dorsal Stream*** handles the entirety of the RL task, where the motor and positional feed are the inputs and the motor control is the output. The important feature is the bridge between the **Dorsal** and **Ventral** which act as a pseudo long-range connection that allows communication between different functional areas. In this case, the MNIST images were incorporated into the RL environment, and whether the digit was **Odd** or **Even** would dictate the reward for moving, motivating to prevent movement during one case. The integrated environment is a total of 784 + 27 input dimensions, with 13 positional values and 14 velocity values in those 27. The environment is crudely visualized in the generated video, looking as follows:
+
+<img src="images/example_rl_env.PNG" width="50%"/>
 
 ### 3. Emergent Clustering
 We analyze the network to observe how neurons group together based on connection strength. This is visualized using graph theory techniques to show how the "Vision" part of the brain talks to the "Motor" part. Multiple different clustering algorithms were used, one such being the Greedy Community, to see which neurons shared the strongest weight connections. Hopefully, from the training, the clusters of related neurons (e.g. visual input, ventral stream).
@@ -117,5 +119,4 @@ But this only holds up well for pattern recognition. We see a different side whe
 
 
 ## TO be added:
-- RL env explanation (on PC so I can add image)
 - Results            (on PC so I can add real results (I think MNIST was around 97%)
